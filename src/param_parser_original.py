@@ -11,12 +11,12 @@ def parameter_parser():
 
     parser.add_argument("--training-graphs",
                         nargs="?",
-                        default="./dataset/tiny_partial_dataset/train/",
+                        default="./dataset/train/",
 	                help="Folder with training graph pair jsons.")
 
     parser.add_argument("--testing-graphs",
                         nargs="?",
-                        default="./dataset/tiny_partial_dataset/test/",
+                        default="./dataset/test/",
 	                help="Folder with testing graph pair jsons.")
 
     parser.add_argument("--epochs",
@@ -77,15 +77,6 @@ def parameter_parser():
     parser.add_argument("--histogram",
                         dest="histogram",
                         action="store_true")
-
-    parser.add_argument("--additional_training",
-                        type=str,
-                        default="no",
-                    help="Additional training of model. Default is 'no'.")
-    parser.add_argument("--retrain",
-                        type=str,
-                        default="no",
-                    help="Retrain the model. Default is 'no'.")
 
     parser.set_defaults(histogram=False)
 
