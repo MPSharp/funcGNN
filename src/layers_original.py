@@ -40,7 +40,7 @@ class AttentionModule(torch.nn.Module):
         representation = torch.mm(torch.t(embedding), sigmoid_scores)
         return representation
 
-class TensorNetworkModule(torch.nn.Module):
+class TenorNetworkModule(torch.nn.Module):
     """
     funcGNN Tensor Network module to calculate similarity vector.
     """
@@ -48,7 +48,7 @@ class TensorNetworkModule(torch.nn.Module):
         """
         :param args: Arguments object.
         """
-        super(TensorNetworkModule, self).__init__()
+        super(TenorNetworkModule, self).__init__()
         self.args = args
         self.setup_weights()
         self.init_parameters()
