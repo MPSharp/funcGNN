@@ -7,14 +7,15 @@ import numpy as np
 import random
 import time
 import torch
+import torch.nn as nn
+import os
 from copy import deepcopy
-from torch_geometric.nn.conv.message_passing import MessagePassing
 
 from layers import AttentionModule, TenorNetworkModule
 from sklearn import metrics
 from sklearn.metrics import pairwise
 from torch.nn.modules.activation import Threshold
-from torch_geometric.nn import GCNConv, SAGEConv
+from torch_geometric.nn import SAGEConv, GCNConv
 from tqdm import tqdm, trange
 from utils import calculate_loss, process_pair
 
@@ -249,14 +250,14 @@ class funcGNNTrainer(object):
                                           lr=self.args.learning_rate,
                                           weight_decay=self.args.weight_decay)
         epoch_counter =0
-        loss =0
+        loss = 0
         bool = False
         self.model.train()
         epochs = trange(self.args.epochs, leave=True, desc="Epoch")
         for epoch in epochs:
             batches = self.create_batches()
             self.loss_sum = 0
-            self.epoch_loss =0
+            self.epoch_loss = 0
             self.node_processed = 0
             for index, batch in tqdm(enumerate(batches), total=len(batches), desc="Batches"):
                 self.epoch_loss = self.epoch_loss+ self.process_batch(batch)
@@ -306,26 +307,48 @@ class funcGNNTrainer(object):
     def ROC(self):        
         print("Calculating similarity scores, ROC...")
         ends = []
-        for each in self.predictions:
-            each = each.detach().numpy()
-            each = np.ndarray.tolist(each)
-            each = each[0]
-            each = each[0]
-            ends.append(each)
-        fpr1, tpr1, thresholds1 = metrics.roc_curve(self.ground_truth,ends, pos_label=1)
-        auc1 = metrics.auc(fpr1, tpr1)
-        print("AUC avg cos: %f" % auc1)
+        try:
+            for each in self.predictions:
+                each = each.detach().numpy()
+                each = np.ndarray.tolist(each)
+                each = each[0]
+                each = each[0]
+                ends.append(each)
+            fpr1, tpr1, thresholds1 = metrics.roc_curve(self.ground_truth,ends, pos_label=1)
+            auc1 = metrics.auc(fpr1, tpr1)
+            print("AUC avg cos: %f" % auc1)
 
-        plt.title('X86-X86 Basic Block Prediction')
-        plt.plot(fpr1, tpr1, label="Similarity Score, AUC=%f" %auc1)
+            plt.title('X86-X86 Basic Block Prediction')
+            plt.plot(fpr1, tpr1, label="Similarity Score, AUC=%f" %auc1)
 
-        plt.legend(loc = 'lower right')
-        plt.plot([0,1], [0,1], 'r--')
-        plt.xlim([0,1])
-        plt.ylim([0,1])
-        plt.ylabel('True Positive Rate')
-        plt.xlabel('False Positive Rate')
-        plt.show()
+            plt.legend(loc = 'lower right')
+            plt.plot([0,1], [0,1], 'r--')
+            plt.xlim([0,1])
+            plt.ylim([0,1])
+            plt.ylabel('True Positive Rate')
+            plt.xlabel('False Positive Rate')
+            plt.show()
+        except:
+            for each in self.predictions:
+                each = each.detach().numpy()
+                each = np.ndarray.tolist(each)
+                each = each[0]
+                each = each[0]
+                ends.append(each)
+            fpr1, tpr1, thresholds1 = metrics.roc_curve(self.ground_truth,ends, pos_label=1)
+            auc1 = metrics.auc(fpr1, tpr1)
+            print("AUC avg cos: %f" % auc1)
+
+            plt.title('X86-X86 Basic Block Prediction')
+            plt.plot(fpr1, tpr1, label="Similarity Score, AUC=%f" %auc1)
+
+            plt.legend(loc = 'lower right')
+            plt.plot([0,1], [0,1], 'r--')
+            plt.xlim([0,1])
+            plt.ylim([0,1])
+            plt.ylabel('True Positive Rate')
+            plt.xlabel('False Positive Rate')
+            plt.show()
 
     def print_evaluation(self):
         """
@@ -374,10 +397,21 @@ class funcGNNTrainer(object):
         # print("\nSerial Execution of funcGNN from pretrained model")
         start_time = time.time()
         self.model = funcGNN(self.args, self.number_of_labels)
-        self.model.load_state_dict(torch.load('./model_state.pth'))
+        state_dict = self.model.state_dict()
+
+        checkpoint = torch.load('./model_state.pth')
+        for key in checkpoint.keys():
+            if key not in state_dict.keys():
+                continue
+            if checkpoint[key].size() != state_dict[key].size():
+                continue
+            state_dict[key] = checkpoint[key]
+        self.model.load_state_dict(state_dict)
+        
         self.model.eval()
         self.scores = []
         self.ground_truth = []
+        self.predictions = []
         
         for test_graph_pair in tqdm(self.testing_graphs):
             data = process_pair(test_graph_pair)
@@ -387,6 +421,7 @@ class funcGNNTrainer(object):
             prediction = self.model(data)
             #print("\n" + str(test_graph_pair) + "- " + "Similarity/Target: " + str(prediction) + " / " + str(target))
             self.scores.append(calculate_loss(prediction, target))
+            self.predictions.append(prediction)
             # self.scores.append(torch.nn.functional.mse_loss(prediction, data["target"]))
         # print("--- %s seconds ---" % (time.time() - start_time))
         model_error = self.print_evaluation()
@@ -422,23 +457,29 @@ class funcGNNTrainer(object):
         """
         Fitting more data.
         """
+        state_dict = self.model.state_dict()
 
-        start_time = time.time()
-        self.model = funcGNN(self.args, self.number_of_labels)
-        self.model.load_state_dict(torch.load('./model_state.pth'))
+        checkpoint = torch.load('./model_state.pth')
+        for key in checkpoint.keys():
+            if key not in state_dict.keys():
+                continue
+            if checkpoint[key].size() != state_dict[key].size():
+                continue
+            state_dict[key] = checkpoint[key]
+        self.model.load_state_dict(state_dict)
 
         self.optimizer = torch.optim.Adam(self.model.parameters(),
                                           lr=self.args.learning_rate,
                                           weight_decay=self.args.weight_decay)
-        epoch_counter =0
-        loss =0
+        epoch_counter = 0
+        loss = 0
         bool = False
         self.model.train()
         epochs = trange(self.args.epochs, leave=True, desc="Epoch")
         for epoch in epochs:
             batches = self.create_batches()
             self.loss_sum = 0
-            self.epoch_loss =0
+            self.epoch_loss = 0
             self.node_processed = 0
             for index, batch in tqdm(enumerate(batches), total=len(batches), desc="Batches"):
                 self.epoch_loss = self.epoch_loss+ self.process_batch(batch)
