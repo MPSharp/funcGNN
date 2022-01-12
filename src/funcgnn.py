@@ -7,15 +7,14 @@ import numpy as np
 import random
 import time
 import torch
-import torch.nn as nn
 import os
 from copy import deepcopy
 
-from layers import AttentionModule, TenorNetworkModule
+from layers import AttentionModule, TensorNetworkModule
 from sklearn import metrics
 from sklearn.metrics import pairwise
 from torch.nn.modules.activation import Threshold
-from torch_geometric.nn import SAGEConv, GCNConv
+from torch_geometric.nn import SAGEConv
 from tqdm import tqdm, trange
 from utils import calculate_loss, process_pair
 
@@ -47,11 +46,13 @@ class funcGNN(torch.nn.Module):
         Creating the layers.
         """
         self.calculate_bottleneck_features()
-        self.convolution_1 = SAGEConv(self.number_labels, self.args.filters_1, normalize = True)
+
+        self.convolution_1 = SAGEConv(self.args.embedding_size, self.args.filters_1, normalize = True)
         self.convolution_2 = SAGEConv(self.args.filters_1, self.args.filters_2, normalize = True)
         self.convolution_3 = SAGEConv(self.args.filters_2, self.args.filters_3, normalize = True)
+
         self.attention = AttentionModule(self.args)
-        self.tensor_network = TenorNetworkModule(self.args)
+        self.tensor_network = TensorNetworkModule(self.args)
         self.fully_connected_first = torch.nn.Linear(self.feature_count,
                                                      self.args.bottle_neck_neurons)
 
@@ -187,11 +188,26 @@ class funcGNNTrainer(object):
         edges_2 = torch.from_numpy(np.array(edges_2, dtype=np.int64).T).type(torch.long)
 
         features_1, features_2 = [], []
+        # for n in data["labels_1"]:
+        #     features_1.append([1.0 if self.global_labels[n] == i else 0.0 for i in self.global_labels.values()])
+
+        # for n in data["labels_2"]:
+        #     features_2.append([1.0 if self.global_labels[n] == i else 0.0 for i in self.global_labels.values()])
+
+        features_1, features_2 = [], []
         for n in data["labels_1"]:
-            features_1.append([1.0 if self.global_labels[n] == i else 0.0 for i in self.global_labels.values()])
+            n = n.split(',')
+            final = []
+            for each in n:
+                final.append(float(each))
+            features_1.append(final)
 
         for n in data["labels_2"]:
-            features_2.append([1.0 if self.global_labels[n] == i else 0.0 for i in self.global_labels.values()])
+            n = n.split(',')
+            final = []
+            for each in n:
+                final.append(float(each))
+            features_2.append(final)
 
         features_1 = torch.FloatTensor(np.array(features_1))
         features_2 = torch.FloatTensor(np.array(features_2))
@@ -302,53 +318,31 @@ class funcGNNTrainer(object):
                 test_error_writer.write(str(epoch_counter) + ',' + str(model_error)+ '\n')
             test_error_writer.close()
 
-    # TODO create function takes in similarity score outputs 1 or 0, creates ROC at the same time
-    ## use sklearn.metrics.roc_curve, after training and during testing, use this
+    # Creates ROC
     def ROC(self):        
         print("Calculating similarity scores, ROC...")
         ends = []
-        try:
-            for each in self.predictions:
-                each = each.detach().numpy()
-                each = np.ndarray.tolist(each)
-                each = each[0]
-                each = each[0]
-                ends.append(each)
-            fpr1, tpr1, thresholds1 = metrics.roc_curve(self.ground_truth,ends, pos_label=1)
-            auc1 = metrics.auc(fpr1, tpr1)
-            print("AUC avg cos: %f" % auc1)
+        for each in self.predictions:
+            each = each.detach().numpy()
+            each = np.ndarray.tolist(each)
+            each = each[0]
+            each = each[0]
+            ends.append(each)
+        fpr1, tpr1, thresholds1 = metrics.roc_curve(self.ground_truth,ends, pos_label=1)
+        auc1 = metrics.auc(fpr1, tpr1)
+        print("AUC avg cos: %f" % auc1)
 
-            plt.title('X86-X86 Basic Block Prediction')
-            plt.plot(fpr1, tpr1, label="Similarity Score, AUC=%f" %auc1)
+        plt.title('X86-X86 Basic Block Prediction')
+        plt.plot(fpr1, tpr1, label="Similarity Score, AUC=%f" %auc1)
 
-            plt.legend(loc = 'lower right')
-            plt.plot([0,1], [0,1], 'r--')
-            plt.xlim([0,1])
-            plt.ylim([0,1])
-            plt.ylabel('True Positive Rate')
-            plt.xlabel('False Positive Rate')
-            plt.show()
-        except:
-            for each in self.predictions:
-                each = each.detach().numpy()
-                each = np.ndarray.tolist(each)
-                each = each[0]
-                each = each[0]
-                ends.append(each)
-            fpr1, tpr1, thresholds1 = metrics.roc_curve(self.ground_truth,ends, pos_label=1)
-            auc1 = metrics.auc(fpr1, tpr1)
-            print("AUC avg cos: %f" % auc1)
-
-            plt.title('X86-X86 Basic Block Prediction')
-            plt.plot(fpr1, tpr1, label="Similarity Score, AUC=%f" %auc1)
-
-            plt.legend(loc = 'lower right')
-            plt.plot([0,1], [0,1], 'r--')
-            plt.xlim([0,1])
-            plt.ylim([0,1])
-            plt.ylabel('True Positive Rate')
-            plt.xlabel('False Positive Rate')
-            plt.show()
+        plt.legend(loc = 'lower right')
+        plt.plot([0,1], [0,1], 'r--')
+        plt.xlim([0,1])
+        plt.ylim([0,1])
+        plt.ylabel('True Positive Rate')
+        plt.xlabel('False Positive Rate')
+        plt.show()
+        
 
     def print_evaluation(self):
         """

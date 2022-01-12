@@ -9,14 +9,23 @@ def parameter_parser():
     """
     parser = argparse.ArgumentParser(description="Run funcGNN.")
 
+    parser.add_argument("--embedding-size",
+                        nargs="?",
+                        default=200,
+	                help="Embedding size of basic block.")
+
     parser.add_argument("--training-graphs",
                         nargs="?",
-                        default="./dataset/tiny_partial_dataset/train/",
+                        default="./dataset/50k_partial_dataset/1st_half_train/",
+                        # default="./dataset/smaller_partial_dataset/train/",
+                        # default="./dataset/tiny_partial_dataset/train/",
 	                help="Folder with training graph pair jsons.")
 
     parser.add_argument("--testing-graphs",
                         nargs="?",
-                        default="./dataset/tiny_partial_dataset/test/",
+                        default="./dataset/50k_partial_dataset/1st_half_test/",
+                        # default="./dataset/smaller_partial_dataset/test/",
+                        # default="./dataset/tiny_partial_dataset/test/",
 	                help="Folder with testing graph pair jsons.")
 
     parser.add_argument("--epochs",
@@ -27,17 +36,17 @@ def parameter_parser():
     parser.add_argument("--filters-1",
                         type=int,
                         default=256,
-	                help="Filters (neurons) in 1st convolution. Default is 128.")
+	                help="Filters (neurons) in 1st convolution. Default is 256.")
 
     parser.add_argument("--filters-2",
                         type=int,
                         default=128,
-	                help="Filters (neurons) in 2nd convolution. Default is 64.")
+	                help="Filters (neurons) in 2nd convolution. Default is 128.")
 
     parser.add_argument("--filters-3",
                         type=int,
                         default=64,
-	                help="Filters (neurons) in 3rd convolution. Default is 32.")
+	                help="Filters (neurons) in 3rd convolution. Default is 64.")
 
     parser.add_argument("--tensor-neurons",
                         type=int,

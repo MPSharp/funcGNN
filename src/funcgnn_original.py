@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm, trange
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import SAGEConv
-from layers import AttentionModule, TenorNetworkModule
+from layers_original import AttentionModule, TenorNetworkModule
 from utils import process_pair, calculate_loss, calculate_normalized_ged
 import concurrent.futures as cf
 import time

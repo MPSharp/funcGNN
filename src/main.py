@@ -36,7 +36,7 @@ def main():
         print("\nSaving Trained Model\n")
         trainer.save_model()
 
-    # trainer.ROC()
+    trainer.ROC()
 
 
 
